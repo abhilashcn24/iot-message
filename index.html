@@ -102,8 +102,24 @@
 
     const form = document.getElementById("form");
 
-    // Backend base URL: use http://localhost:PORT while developing, or your ngrok HTTPS URL when testing from the phone / public web.
-    const API_BASE = "http://localhost:3000";
+    // Must be origin only: scheme + host + port. No path (not …/submit-form).
+    // If you open this file via Live Server or another host, set the backend origin here.
+    // If you open http://YOUR_SERVER:3000/form (same Express app), this auto-picks the right API.
+    const API_BASE = (() => {
+      if (window.location.protocol === "file:") {
+        return "http://localhost:3000";
+      }
+      const p = window.location.port;
+      if (
+        (window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1") &&
+        p &&
+        p !== "3000"
+      ) {
+        return "http://localhost:3000";
+      }
+      return window.location.origin;
+    })();
 
     form.addEventListener("submit", async (e) => {
 
@@ -113,7 +129,7 @@
 
       try {
 
-        const response = await fetch(`${API_BASE}/submit-form`, {
+        const response = await fetch(`${API_BASE.replace(/\/$/, "")}/submit-form`, {
           method: "POST",
           body: formData,
         });

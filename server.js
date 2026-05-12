@@ -51,6 +51,11 @@ app.get("/", (req, res) => {
   res.send("Backend is running 🚀");
 });
 
+/** Open this in the browser so the form uses the same host/port as the API (no wrong API_BASE). */
+app.get("/form", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
 /*
 |--------------------------------------------------------------------------
 | MULTER STORAGE CONFIGURATION
@@ -88,16 +93,21 @@ const client = twilio(
   process.env.TWILIO_AUTH_TOKEN
 );
 
-/** Base URL Twilio can reach (no trailing slash). Use your ngrok HTTPS origin, e.g. https://abc.ngrok-free.app */
+/** Base URL Twilio can reach (no trailing slash). Prefer PUBLIC_APP_URL; else infer from proxy or request Host. */
 function publicAppOrigin(req) {
   const fromEnv = process.env.PUBLIC_APP_URL?.trim().replace(/\/+$/, "");
   if (fromEnv) return fromEnv;
+  const xfProto = req.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const xfHost = req.get("x-forwarded-host")?.split(",")[0]?.trim();
+  if (xfProto && xfHost) {
+    return `${xfProto}://${xfHost}`;
+  }
   return `${req.protocol}://${req.get("host")}`;
 }
 
 function twilioCannotFetchMediaUrl(url) {
   try {
-    const { hostname, protocol } = new URL(url);
+    const { hostname } = new URL(url);
     const h = hostname.toLowerCase();
     if (h === "localhost" || h === "127.0.0.1" || h.endsWith(".local")) {
       return true;
@@ -107,9 +117,7 @@ function twilioCannotFetchMediaUrl(url) {
     ) {
       return true;
     }
-    if (protocol === "http:" && !h.endsWith("ngrok-free.app") && !h.endsWith("ngrok.io")) {
-      return true;
-    }
+    // Public http(s) is allowed so Twilio can try (e.g. public IP + TLS terminator, or ngrok http).
     return false;
   } catch {
     return true;

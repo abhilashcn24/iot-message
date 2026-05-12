@@ -170,32 +170,23 @@ Copy this URL.
 
 ---
 
-# Point the frontend at your backend
+# Run the form (recommended)
 
-Inside `index.html`, set `API_BASE` to match where `server.js` is reachable:
+With the server running, open in your browser:
 
-- **Local only:** keep `http://localhost:3000` (same port as `PORT` in `.env` or the default in `server.js`).
-- **Phone / public URL:** set it to your ngrok HTTPS origin (no trailing slash), e.g. `https://abc123.ngrok-free.app`.
-
-Example:
-
-```javascript
-const API_BASE = "https://abc123.ngrok-free.app";
+```text
+http://localhost:3000/form
 ```
 
-The form posts to `${API_BASE}/submit-form`.
+Use your public URL the same way, e.g. `http://YOUR_PUBLIC_IP:3000/form` or `https://YOUR-NGROK.ngrok-free.app/form`. The page picks the API origin automatically so you do not put `/submit-form` in the base URL (that was causing `…/submit-form/submit-form`).
+
+Optional: set `PUBLIC_APP_URL` in `.env` to the same **public** origin (no path) so Twilio can download image attachments.
 
 ---
 
-# Run Frontend
+# Run Frontend (alternative)
 
-Open:
-
-```text
-index.html
-```
-
-OR use VS Code Live Server extension.
+Open `index.html` directly or via Live Server only if the script’s fallback `API_BASE` matches your backend (see `index.html` comments).
 
 ---
 
