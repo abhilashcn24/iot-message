@@ -116,6 +116,27 @@ function twilioCannotFetchMediaUrl(url) {
   }
 }
 
+/** Twilio expects whatsapp:+E164 (e.g. whatsapp:+9198xxxxxxx). */
+function toWhatsAppAddress(raw) {
+  if (!raw || typeof raw !== "string") return raw;
+  let s = raw.trim().replace(/\s+/g, "");
+  if (!s) return "";
+  if (/^whatsapp:/i.test(s)) {
+    return `whatsapp:${s.replace(/^whatsapp:/i, "")}`;
+  }
+  if (!s.startsWith("+")) {
+    s = `+${s}`;
+  }
+  return `whatsapp:${s}`;
+}
+
+function maskWhatsApp(addr) {
+  if (!addr || typeof addr !== "string") return "(missing)";
+  const m = addr.replace(/^whatsapp:/i, "");
+  if (m.length <= 6) return m;
+  return `${m.slice(0, 4)}…${m.slice(-4)}`;
+}
+
 /*
 |--------------------------------------------------------------------------
 | FORM SUBMISSION ROUTE
@@ -193,10 +214,21 @@ ${message}
     |--------------------------------------------------------------------------
     */
 
+    const from = toWhatsAppAddress(process.env.TWILIO_WHATSAPP_NUMBER);
+    const to = toWhatsAppAddress(process.env.YOUR_WHATSAPP_NUMBER);
+
+    if (!from || !to || from === "whatsapp:" || to === "whatsapp:") {
+      return res.status(500).json({
+        success: false,
+        error:
+          "Missing or invalid TWILIO_WHATSAPP_NUMBER / YOUR_WHATSAPP_NUMBER in .env (use full numbers, e.g. +9198… and sandbox from whatsapp:+14155238886).",
+      });
+    }
+
     const messageOptions = {
       body: whatsappMessage,
-      from: process.env.TWILIO_WHATSAPP_NUMBER,
-      to: process.env.YOUR_WHATSAPP_NUMBER,
+      from,
+      to,
     };
 
     /*
@@ -217,7 +249,9 @@ ${message}
 
     const response = await client.messages.create(messageOptions);
 
-    console.log("WhatsApp sent:", response.sid);
+    console.log(
+      `WhatsApp API ok sid=${response.sid} status=${response.status} to=${maskWhatsApp(to)}`
+    );
 
     /*
     |--------------------------------------------------------------------------
@@ -252,4 +286,18 @@ ${message}
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  const miss = ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_WHATSAPP_NUMBER", "YOUR_WHATSAPP_NUMBER"].filter(
+    (k) => !process.env[k]?.trim()
+  );
+  if (miss.length) {
+    console.warn("Missing .env vars:", miss.join(", "));
+  }
+  if (!process.env.PUBLIC_APP_URL?.trim()) {
+    console.warn(
+      "PUBLIC_APP_URL is unset — image attachments use localhost and Twilio will reject them. Set it to your HTTPS ngrok origin (no path)."
+    );
+  }
+  console.log(
+    "WhatsApp sandbox: your personal WhatsApp must send the JOIN code to the sandbox number first; FROM is often whatsapp:+14155238886. Logs: https://console.twilio.com/us1/monitor/logs/sms"
+  );
 });

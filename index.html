@@ -123,9 +123,10 @@
         console.log(data);
 
         if (data.success) {
-          alert("WhatsApp message sent successfully!");
+          const extra = data.imageNote ? `\n\n${data.imageNote}` : "";
+          alert("WhatsApp message sent successfully!" + extra);
         } else {
-          alert("Failed to send WhatsApp message");
+          alert(data.error || "Failed to send WhatsApp message");
         }
 
       } catch (error) {
