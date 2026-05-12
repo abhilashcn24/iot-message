@@ -88,6 +88,9 @@ Example:
 ```env
 PORT=3000
 
+# Required for Twilio to download and attach uploaded images (use your ngrok HTTPS origin, no trailing slash)
+PUBLIC_APP_URL=https://YOUR-SUBDOMAIN.ngrok-free.app
+
 TWILIO_ACCOUNT_SID=YOUR_ACCOUNT_SID
 
 TWILIO_AUTH_TOKEN=YOUR_AUTH_TOKEN

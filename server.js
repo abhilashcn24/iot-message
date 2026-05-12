@@ -88,6 +88,34 @@ const client = twilio(
   process.env.TWILIO_AUTH_TOKEN
 );
 
+/** Base URL Twilio can reach (no trailing slash). Use your ngrok HTTPS origin, e.g. https://abc.ngrok-free.app */
+function publicAppOrigin(req) {
+  const fromEnv = process.env.PUBLIC_APP_URL?.trim().replace(/\/+$/, "");
+  if (fromEnv) return fromEnv;
+  return `${req.protocol}://${req.get("host")}`;
+}
+
+function twilioCannotFetchMediaUrl(url) {
+  try {
+    const { hostname, protocol } = new URL(url);
+    const h = hostname.toLowerCase();
+    if (h === "localhost" || h === "127.0.0.1" || h.endsWith(".local")) {
+      return true;
+    }
+    if (
+      /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(h)
+    ) {
+      return true;
+    }
+    if (protocol === "http:" && !h.endsWith("ngrok-free.app") && !h.endsWith("ngrok.io")) {
+      return true;
+    }
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 /*
 |--------------------------------------------------------------------------
 | FORM SUBMISSION ROUTE
@@ -120,13 +148,20 @@ app.post("/submit-form", upload.single("image"), async (req, res) => {
     */
 
     let imageUrl = null;
+    let imageSkippedForTwilio = false;
 
     if (req.file) {
-      imageUrl = `${req.protocol}://${req.get("host")}/uploads/${
-        req.file.filename
-      }`;
+      const origin = publicAppOrigin(req);
+      imageUrl = `${origin}/uploads/${req.file.filename}`;
 
-      console.log("Image uploaded:", imageUrl);
+      if (twilioCannotFetchMediaUrl(imageUrl)) {
+        imageSkippedForTwilio = true;
+        console.warn(
+          "Image saved locally but not sent via Twilio (URL not public). Set PUBLIC_APP_URL to your HTTPS ngrok URL in .env."
+        );
+      } else {
+        console.log("Image URL for Twilio:", imageUrl);
+      }
     }
 
     /*
@@ -135,7 +170,7 @@ app.post("/submit-form", upload.single("image"), async (req, res) => {
     |--------------------------------------------------------------------------
     */
 
-    const whatsappMessage = `
+    let whatsappMessage = `
 📩 New Form Submission
 
 👤 Name: ${name}
@@ -147,6 +182,10 @@ app.post("/submit-form", upload.single("image"), async (req, res) => {
 📝 Message:
 ${message}
 `;
+
+    if (imageSkippedForTwilio) {
+      whatsappMessage += `\n\n📎 Photo uploaded on server: ${req.file.filename} (add PUBLIC_APP_URL for Twilio to attach it.)`;
+    }
 
     /*
     |--------------------------------------------------------------------------
@@ -166,7 +205,7 @@ ${message}
     |--------------------------------------------------------------------------
     */
 
-    if (imageUrl) {
+    if (imageUrl && !imageSkippedForTwilio) {
       messageOptions.mediaUrl = [imageUrl];
     }
 
@@ -190,7 +229,10 @@ ${message}
       success: true,
       message: "WhatsApp message sent successfully",
       sid: response.sid,
-      imageUrl,
+      imageUrl: imageSkippedForTwilio ? null : imageUrl,
+      imageNote: imageSkippedForTwilio
+        ? "Set PUBLIC_APP_URL in .env (HTTPS ngrok origin) to attach photos on WhatsApp."
+        : undefined,
     });
   } catch (error) {
     console.error("ERROR:", error);
