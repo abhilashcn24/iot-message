@@ -9,6 +9,9 @@ const fs = require("fs");
 
 const app = express();
 
+// So req.protocol is https when behind ngrok / reverse proxy (Twilio media URLs)
+app.set("trust proxy", 1);
+
 app.use(cors());
 app.use(express.json());
 

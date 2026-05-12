@@ -102,6 +102,9 @@
 
     const form = document.getElementById("form");
 
+    // Backend base URL: use http://localhost:PORT while developing, or your ngrok HTTPS URL when testing from the phone / public web.
+    const API_BASE = "http://localhost:3000";
+
     form.addEventListener("submit", async (e) => {
 
       e.preventDefault();
@@ -110,13 +113,10 @@
 
       try {
 
-        const response = await fetch(
-          "https://scoreless-rare-lisp.ngrok-free.dev/submit-form",
-          {
-            method: "POST",
-            body: formData
-          }
-        );
+        const response = await fetch(`${API_BASE}/submit-form`, {
+          method: "POST",
+          body: formData,
+        });
 
         const data = await response.json();
 

@@ -39,16 +39,16 @@ A simple Node.js + Express application that sends WhatsApp notifications using T
 # Project Structure
 
 ```text
-whatsapp-form-api/
+iot-message/
 │
-├── uploads/
-│
+├── uploads/          (created at runtime; not in git)
 ├── server.js
 ├── index.html
-├── .env
+├── .gitignore
+├── .env              (create locally; never commit — see below)
 ├── package.json
 ├── package-lock.json
-└── README.md
+└── readme.md
 ```
 
 ---
@@ -58,14 +58,15 @@ whatsapp-form-api/
 ## 1. Clone Project
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/abhilashcn24/iot-message.git
+cd iot-message
 ```
 
 OR create manually:
 
 ```bash
-mkdir whatsapp-form-api
-cd whatsapp-form-api
+mkdir iot-message
+cd iot-message
 ```
 
 ---
@@ -73,7 +74,7 @@ cd whatsapp-form-api
 # Install Dependencies
 
 ```bash
-npm install express cors dotenv twilio multer
+npm install
 ```
 
 ---
@@ -166,23 +167,20 @@ Copy this URL.
 
 ---
 
-# Update Frontend Fetch URL
+# Point the frontend at your backend
 
-Inside `index.html`
+Inside `index.html`, set `API_BASE` to match where `server.js` is reachable:
 
-Find:
-
-```javascript
-fetch("https://YOUR-NGROK-URL.ngrok-free.app/submit-form")
-```
-
-Replace with your ngrok URL.
+- **Local only:** keep `http://localhost:3000` (same port as `PORT` in `.env` or the default in `server.js`).
+- **Phone / public URL:** set it to your ngrok HTTPS origin (no trailing slash), e.g. `https://abc123.ngrok-free.app`.
 
 Example:
 
 ```javascript
-fetch("https://abc123.ngrok-free.app/submit-form")
+const API_BASE = "https://abc123.ngrok-free.app";
 ```
+
+The form posts to `${API_BASE}/submit-form`.
 
 ---
 
